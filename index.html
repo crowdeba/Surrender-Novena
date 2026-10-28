@@ -152,7 +152,7 @@ summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-heig
   /* ---------- state ---------- */
   function fresh() {
     return { v: 1, cycle: 1, day: 1, done: [0, 0, 0, 0, 0, 0, 0, 0, 0], lastDoneDate: null, lastDoneDay: null, lastDoneCycle: null,
-      justFinished: false, daysPrayed: 0, cyclesCompleted: 0, journal: {}, counter: { date: '', n: 0 },
+      justFinished: false, seenWelcome: false, daysPrayed: 0, cyclesCompleted: 0, journal: {}, counter: { date: '', n: 0 },
       settings: { refrain: DEFAULT_REFRAIN, target: 10, offline: {} } };
   }
   function normalize(s) {
@@ -165,6 +165,7 @@ summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-heig
     f.lastDoneDay = parseInt(s.lastDoneDay, 10) || null;
     f.lastDoneCycle = parseInt(s.lastDoneCycle, 10) || null;
     f.justFinished = !!s.justFinished;
+    f.seenWelcome = !!s.seenWelcome;
     f.daysPrayed = Math.max(0, parseInt(s.daysPrayed, 10) || 0);
     f.cyclesCompleted = Math.max(0, parseInt(s.cyclesCompleted, 10) || 0);
     if (s.journal && typeof s.journal === 'object') f.journal = s.journal;
@@ -258,7 +259,12 @@ summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-heig
     else if (!S.lastDoneDate) line = 'Begin whenever you&rsquo;re ready.';
     else line = 'Take a breath. Today is Day ' + d + '.';
 
-    var h = '<section class="hero"><h1 class="day">Day ' + d + '</h1><p class="sub">Novena ' + c + (done ? ', prayed today' : '') + '</p>' + candleRow() + '<p class="note-line">' + line + '</p></section>';
+    var h = '';
+    if (!S.seenWelcome && S.daysPrayed === 0) h += '<section class="card" style="margin-bottom:18px"><h2 style="font-size:1.15rem;margin-bottom:8px">Welcome</h2>' +
+      '<p>This is a quiet companion for the Surrender Novena, nine days of prayer to Jesus. Each day, open that day&rsquo;s prayer, say your refrain, write down what you&rsquo;re handing over, and mark the day done. After Day 9 it starts again.</p>' +
+      '<p>Everything you write stays on this device. There are no accounts, and nothing is sent anywhere. This is an unofficial companion and isn&rsquo;t affiliated with surrendernovena.com.</p>' +
+      '<button class="btn quiet small" data-act="welcome">Got it</button></section>';
+    h += '<section class="hero"><h1 class="day">Day ' + d + '</h1><p class="sub">Novena ' + c + (done ? ', prayed today' : '') + '</p>' + candleRow() + '<p class="note-line">' + line + '</p></section>';
 
     h += '<div class="stack" style="margin-top:18px"><a class="btn ' + (done ? 'quiet' : 'primary') + '" href="' + SITE + 'novena-day-' + d + '" target="_blank" rel="noopener noreferrer">Open Day ' + d + ' on surrendernovena.com</a></div>' +
       '<p class="hint">Opens the prayer in a new tab.</p>';
@@ -307,10 +313,12 @@ summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-heig
     h += '<section class="section"><h2>The words you repeat</h2><div class="card"><label for="refrain">Your refrain (edit it to match your copy)</label><input type="text" id="refrain" data-field="refrain" value="' + esc(S.settings.refrain) + '">' +
       '<div style="height:12px"></div><label for="target">How many times each day</label><input type="number" id="target" data-field="target" min="1" max="99" value="' + S.settings.target + '"></div></section>';
     h += '<section class="section"><h2>Keep my own copy</h2><p class="fine">Optional. If you want to read a day without leaving the app, paste it here for yourself. It stays on this device.</p><div class="card">' + offl + '</div></section>';
-    h += '<section class="section"><h2>Back up</h2><p class="fine">Everything is saved only on this device. Copy this to keep a backup, or paste an old backup below to restore it.</p><div class="card">' +
+    h += '<section class="section"><h2>Back up</h2><p class="fine">Everything is saved only on this device. To move to a new phone, copy this backup, then paste it into the same page on the new phone and tap Restore.</p><div class="card">' +
       '<label for="export">Your backup</label><textarea id="export" readonly>' + esc(JSON.stringify(S)) + '</textarea><div style="height:10px"></div><button class="btn quiet small" data-act="copy">Copy backup</button>' +
       '<div style="height:16px"></div><label for="import">Restore from a backup</label><textarea id="import" placeholder="Paste a backup here"></textarea><div style="height:10px"></div><button class="btn quiet small" data-act="restore">Restore</button></div></section>';
     h += '<section class="section"><h2>On your phone</h2><p class="fine">On iPhone, open this page in Safari, tap Share, then Add to Home Screen. For a daily nudge, add a repeating reminder in the Reminders app.</p></section>';
+    h += '<section class="section"><h2>Share</h2><p class="fine">Anyone who opens this link gets their own private copy. You can&rsquo;t see theirs, and they can&rsquo;t see yours.</p><button class="btn quiet small" data-act="share">Share this app</button></section>';
+    h += '<section class="section"><h2>About</h2><p class="fine">Surrender is an unofficial companion for the Surrender Novena by Servant of God Don Dolindo Ruotolo. The prayers live on surrendernovena.com, which isn&rsquo;t affiliated with this app. Nothing you enter here ever leaves your device.</p></section>';
     h += '<section class="section"><button class="btn danger" data-act="wipe">Erase everything on this device</button></section>';
     return h;
   }
@@ -324,6 +332,13 @@ summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-heig
     var t = ev.target.closest ? ev.target.closest('[data-act]') : null; if (!t) return;
     var a = t.getAttribute('data-act'), k = t.getAttribute('data-k');
     if (a === 'view') { view = t.getAttribute('data-view'); render(); window.scrollTo(0, 0); }
+    else if (a === 'welcome') { S.seenWelcome = true; save(); render(); }
+    else if (a === 'share') {
+      var url = String(location.href).split('#')[0];
+      if (navigator.share) { navigator.share({ title: 'Surrender', text: 'A private companion for the Surrender Novena.', url: url }).catch(function () {}); }
+      else if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(function () { flash('Link copied.'); }, function () { flash('Copy the address from your browser.'); });
+      else flash('Copy the address from your browser.');
+    }
     else if (a === 'tap') tap();
     else if (a === 'resetcount') resetCount();
     else if (a === 'done') markDone();
