@@ -108,6 +108,11 @@ details { border-top: 1px solid var(--line); padding: 10px 0; }
 details:first-of-type { border-top: 0; }
 summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-height: 44px; display: flex; align-items: center; }
 .copytext { white-space: pre-wrap; padding: 4px 0 8px; }
+.read .copytext { font-size: 1.08rem; line-height: 1.75; padding: 2px 0; }
+.hrow { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid var(--line); font-family: var(--sans); font-size: .95rem; }
+.hrow:first-of-type { border-top: 0; }
+.hrow .when { color: var(--muted); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 
 .entry { margin-bottom: 14px; }
 .entry h3 { font-size: 1.05rem; }
@@ -139,7 +144,8 @@ summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-heig
   var KEY = 'surrender-novena-v1';
   var SITE = 'https://www.surrendernovena.com/';
   var DEFAULT_REFRAIN = 'Jesus, I surrender myself to You. Take care of everything.';
-  var S, view = 'today', memoryOnly = false, noteTimer = null, flashTimer = null;
+  var LOCK_KEY = 'surrender-novena-lock-v1';
+  var S, view = 'today', setupDay = 1, bulkText = '', bulkParts = null, locked = false, lockMsg = '', hiddenAt = 0, memoryOnly = false, noteTimer = null, flashTimer = null;
 
   /* ---------- helpers ---------- */
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
@@ -152,7 +158,7 @@ summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-heig
   /* ---------- state ---------- */
   function fresh() {
     return { v: 1, cycle: 1, day: 1, done: [0, 0, 0, 0, 0, 0, 0, 0, 0], lastDoneDate: null, lastDoneDay: null, lastDoneCycle: null,
-      justFinished: false, seenWelcome: false, daysPrayed: 0, cyclesCompleted: 0, journal: {}, counter: { date: '', n: 0 },
+      justFinished: false, seenWelcome: false, daysPrayed: 0, cyclesCompleted: 0, history: [], journal: {}, counter: { date: '', n: 0 },
       settings: { refrain: DEFAULT_REFRAIN, target: 10, offline: {} } };
   }
   function normalize(s) {
@@ -166,6 +172,7 @@ summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-heig
     f.lastDoneCycle = parseInt(s.lastDoneCycle, 10) || null;
     f.justFinished = !!s.justFinished;
     f.seenWelcome = !!s.seenWelcome;
+    if (Array.isArray(s.history)) f.history = s.history.filter(function (h) { return h && typeof h.date === 'string' && h.day >= 1 && h.day <= 9 && h.cycle >= 1; }).map(function (h) { return { date: h.date, cycle: parseInt(h.cycle, 10), day: parseInt(h.day, 10) }; }).slice(-2000);
     f.daysPrayed = Math.max(0, parseInt(s.daysPrayed, 10) || 0);
     f.cyclesCompleted = Math.max(0, parseInt(s.cyclesCompleted, 10) || 0);
     if (s.journal && typeof s.journal === 'object') f.journal = s.journal;
@@ -190,6 +197,20 @@ summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-heig
     clearTimeout(flashTimer); flashTimer = setTimeout(function () { el.className = ''; }, 3200);
   }
 
+  /* ---------- passcode lock (optional) ---------- */
+  function canLock() { return !!(window.crypto && window.crypto.subtle && window.TextEncoder); }
+  function sha(str) {
+    return window.crypto.subtle.digest('SHA-256', new window.TextEncoder().encode(str)).then(function (buf) {
+      return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+    });
+  }
+  function getLock() { try { var r = localStorage.getItem(LOCK_KEY); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+  function lockView() {
+    return '<div class="top"><div class="brand">Surrender</div></div><section class="section" style="margin-top:36px;text-align:center"><h1 class="day" style="font-size:2.4rem">Locked</h1><p class="sub">Enter your passcode.</p>' +
+      '<div class="stack" style="margin:18px auto 0;max-width:280px"><input id="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="4" aria-label="Passcode" style="text-align:center;font-size:1.6rem;letter-spacing:.4em"><button class="btn primary" data-act="unlock">Unlock</button></div>' +
+      '<p class="hint" id="pinmsg" role="alert">' + esc(lockMsg) + '</p><p class="hint"><button class="reset" data-act="forgot">Forgot it? Erase everything and start fresh</button></p></section>';
+  }
+
   /* ---------- derived ---------- */
   function prayedToday() { return S.lastDoneDate === today(); }
   function shownDay() { return prayedToday() ? S.lastDoneDay : S.day; }
@@ -203,6 +224,7 @@ summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-heig
     if (prayedToday()) return;
     var d = S.day, c = S.cycle;
     S.done[d - 1] = 1; S.lastDoneDate = today(); S.lastDoneDay = d; S.lastDoneCycle = c; S.daysPrayed++;
+    S.history.push({ date: today(), cycle: c, day: d });
     if (d === 9) { S.cyclesCompleted++; S.justFinished = true; S.cycle = c + 1; S.day = 1; S.done = [0, 0, 0, 0, 0, 0, 0, 0, 0]; }
     else { S.day = d + 1; S.justFinished = false; }
     save(); render();
@@ -245,7 +267,7 @@ summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-heig
   }
   function nav() {
     function b(v, l) { return '<button data-act="view" data-view="' + v + '"' + (view === v ? ' aria-current="page"' : '') + '>' + l + '</button>'; }
-    return '<div class="top"><div class="brand">Surrender</div><nav class="nav" aria-label="Sections">' + b('today', 'Today') + b('journal', 'Journal') + b('settings', 'Settings') + '</nav></div>' +
+    return '<div class="top"><div class="brand">Surrender</div><nav class="nav" aria-label="Sections">' + b('today', 'Today') + b('journal', 'History') + b('settings', 'Settings') + '</nav></div>' +
       (memoryOnly ? '<div class="warn">Your browser is blocking saving, so nothing will be kept after you close this page. Try a normal (not private) window.</div>' : '');
   }
   function todayView() {
@@ -262,13 +284,19 @@ summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-heig
     var h = '';
     if (!S.seenWelcome && S.daysPrayed === 0) h += '<section class="card" style="margin-bottom:18px"><h2 style="font-size:1.15rem;margin-bottom:8px">Welcome</h2>' +
       '<p>This is a quiet companion for the Surrender Novena, nine days of prayer to Jesus. Each day, open that day&rsquo;s prayer, say your refrain, write down what you&rsquo;re handing over, and mark the day done. After Day 9 it starts again.</p>' +
-      '<p>Everything you write stays on this device. There are no accounts, and nothing is sent anywhere. This is an unofficial companion and isn&rsquo;t affiliated with surrendernovena.com.</p>' +
+      '<p>You can read each day&rsquo;s prayer inside the app by pasting it in once from the site. Everything you write or paste stays on this device. There are no accounts, and nothing is sent anywhere. This is an unofficial companion and isn&rsquo;t affiliated with surrendernovena.com.</p>' +
       '<button class="btn quiet small" data-act="welcome">Got it</button></section>';
     h += '<section class="hero"><h1 class="day">Day ' + d + '</h1><p class="sub">Novena ' + c + (done ? ', prayed today' : '') + '</p>' + candleRow() + '<p class="note-line">' + line + '</p></section>';
 
-    h += '<div class="stack" style="margin-top:18px"><a class="btn ' + (done ? 'quiet' : 'primary') + '" href="' + SITE + 'novena-day-' + d + '" target="_blank" rel="noopener noreferrer">Open Day ' + d + ' on surrendernovena.com</a></div>' +
-      '<p class="hint">Opens the prayer in a new tab.</p>';
-    if (off && String(off).trim()) h += '<div class="card" style="margin-top:14px"><details><summary>Read my saved copy of Day ' + d + '</summary><div class="copytext">' + esc(off) + '</div></details></div>';
+    if (off && String(off).trim()) {
+      h += '<section class="section" style="margin-top:22px"><h2>The prayer for Day ' + d + '</h2><div class="card read"><div class="copytext">' + esc(off) + '</div></div>' +
+        '<div class="actions"><button class="btn quiet small" data-act="opensetup" data-day="' + d + '">Edit my copy</button>' +
+        '<a class="btn quiet small" href="' + SITE + 'novena-day-' + d + '" target="_blank" rel="noopener noreferrer">Open on the site</a></div></section>';
+    } else {
+      h += '<div class="stack" style="margin-top:18px"><a class="btn ' + (done ? 'quiet' : 'primary') + '" href="' + SITE + 'novena-day-' + d + '" target="_blank" rel="noopener noreferrer">Open Day ' + d + ' on surrendernovena.com</a>' +
+        '<button class="btn quiet" data-act="opensetup" data-day="' + d + '">Read it here instead</button></div>' +
+        '<p class="hint">Copy the prayer from the site once and paste it here. After that it opens inside the app.</p>';
+    }
 
     h += '<section class="section"><h2>Say it ' + t + ' times</h2><div class="counter">' +
       '<button class="tap" data-act="tap" aria-label="Count a prayer. ' + n + ' of ' + t + ' so far">' +
@@ -286,19 +314,33 @@ summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-heig
     return h;
   }
   function journalView() {
-    var keys = Object.keys(S.journal);
-    if (!keys.length) return '<div class="empty"><p>Nothing here yet.</p><p>What you write on the Today page will gather here, so you can look back at what you handed over.</p></div>';
+    var h = '', keys = Object.keys(S.journal), hist = S.history.slice(), byCycle = {}, cycles, last = hist.length ? hist[hist.length - 1].date : null;
+    if (!hist.length && !keys.length && !S.daysPrayed) return '<div class="empty"><p>Nothing here yet.</p><p>The days you pray and what you hand over will gather here, so you can look back.</p></div>';
+    h += '<section class="section" style="margin-top:6px"><h2>Days prayed</h2><p class="fine">' + S.daysPrayed + (S.daysPrayed === 1 ? ' day prayed in total. ' : ' days prayed in total. ') +
+      (S.cyclesCompleted ? S.cyclesCompleted + (S.cyclesCompleted === 1 ? ' novena finished. ' : ' novenas finished. ') : '') + (last ? 'Last prayed ' + esc(prettyDate(last)) + '.' : '') + '</p>';
+    hist.forEach(function (e) { (byCycle[e.cycle] = byCycle[e.cycle] || []).push(e); });
+    cycles = Object.keys(byCycle).map(Number).sort(function (x, y) { return y - x; });
+    if (!cycles.length) h += '<p class="fine">Your day-by-day record starts from the next day you mark as prayed.</p>';
+    cycles.forEach(function (cy) {
+      var rows = byCycle[cy].slice().sort(function (x, y) { return x.date < y.date ? -1 : x.date > y.date ? 1 : x.day - y.day; });
+      var days = {}; rows.forEach(function (r) { days[r.day] = 1; });
+      h += '<div class="card" style="margin-top:10px"><h3 style="font-size:1.05rem;margin-bottom:6px">Novena ' + cy + (Object.keys(days).length === 9 ? ' (complete)' : '') + '</h3>' +
+        rows.map(function (r) { return '<div class="hrow"><span>Day ' + r.day + '</span><span class="when">' + esc(prettyDate(r.date)) + '</span></div>'; }).join('') + '</div>';
+    });
+    h += '</section><section class="section"><h2>What I handed over</h2>';
+    if (!keys.length) h += '<p class="fine">Nothing written yet. What you write on the Today page will gather here.</p>';
     var items = keys.map(function (k) { return { k: k, e: S.journal[k] }; }).sort(function (a, b) {
       if (a.e.date !== b.e.date) return a.e.date < b.e.date ? 1 : -1;
       if (a.e.cycle !== b.e.cycle) return b.e.cycle - a.e.cycle;
       return b.e.day - a.e.day;
     });
-    return items.map(function (it) {
+    h += items.map(function (it) {
       var e = it.e;
       return '<article class="card entry' + (e.resolved ? ' resolved' : '') + '"><h3>Novena ' + e.cycle + ', Day ' + e.day + '</h3><p class="date">' + esc(prettyDate(e.date)) + (e.resolved ? ' &ndash; resolved' : '') + '</p>' +
         '<p class="text">' + esc(e.text) + '</p><div class="row"><button class="btn quiet small" data-act="resolve" data-k="' + esc(it.k) + '">' + (e.resolved ? 'Mark as open again' : 'Mark as resolved') + '</button>' +
         '<button class="btn quiet small" data-act="delentry" data-k="' + esc(it.k) + '">Delete</button></div></article>';
     }).join('');
+    return h + '</section>';
   }
   function settingsView() {
     var i, h = '', opts = '', offl = '', links = '';
@@ -312,19 +354,62 @@ summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-heig
     h += '<section class="section"><h2>The prayers</h2><div class="links">' + links + '</div><p class="fine" style="margin-top:10px">These open each day on surrendernovena.com. <a style="color:inherit" href="' + SITE + 'full-novena" target="_blank" rel="noopener noreferrer">The full novena page</a> has them together.</p></section>';
     h += '<section class="section"><h2>The words you repeat</h2><div class="card"><label for="refrain">Your refrain (edit it to match your copy)</label><input type="text" id="refrain" data-field="refrain" value="' + esc(S.settings.refrain) + '">' +
       '<div style="height:12px"></div><label for="target">How many times each day</label><input type="number" id="target" data-field="target" min="1" max="99" value="' + S.settings.target + '"></div></section>';
-    h += '<section class="section"><h2>Keep my own copy</h2><p class="fine">Optional. If you want to read a day without leaving the app, paste it here for yourself. It stays on this device.</p><div class="card">' + offl + '</div></section>';
+    h += '<section class="section"><h2>My saved prayers</h2><p class="fine">Read each day inside the app by pasting it in once from the site. It stays on this device.</p><button class="btn primary small" data-act="openbulk" style="margin-bottom:10px">Paste all nine days at once</button> <button class="btn quiet small" data-act="opensetup" data-day="' + firstMissingDay() + '" style="margin-bottom:12px">' + (firstMissingDay() === 1 && !(S.settings.offline[1] && String(S.settings.offline[1]).trim()) ? 'Set up all nine days' : 'Continue setting up') + '</button><div class="card">' + offl + '</div></section>';
     h += '<section class="section"><h2>Back up</h2><p class="fine">Everything is saved only on this device. To move to a new phone, copy this backup, then paste it into the same page on the new phone and tap Restore.</p><div class="card">' +
       '<label for="export">Your backup</label><textarea id="export" readonly>' + esc(JSON.stringify(S)) + '</textarea><div style="height:10px"></div><button class="btn quiet small" data-act="copy">Copy backup</button>' +
       '<div style="height:16px"></div><label for="import">Restore from a backup</label><textarea id="import" placeholder="Paste a backup here"></textarea><div style="height:10px"></div><button class="btn quiet small" data-act="restore">Restore</button></div></section>';
     h += '<section class="section"><h2>On your phone</h2><p class="fine">On iPhone, open this page in Safari, tap Share, then Add to Home Screen. For a daily nudge, add a repeating reminder in the Reminders app.</p></section>';
+    if (canLock()) {
+      var hasLock = !!getLock();
+      h += '<section class="section"><h2>Passcode lock</h2><p class="fine">Optional. Asks for a 4-digit passcode when you open the app, so someone who picks up your phone can&rsquo;t read your notes. It keeps casual eyes out. It isn&rsquo;t encryption, so if you forget it, the only way back in is to erase everything and restore a backup.</p>' +
+        (hasLock ? '<button class="btn quiet small" data-act="removepin">Turn off passcode</button>'
+          : '<div class="card"><label for="newpin">Choose a 4-digit passcode</label><input id="newpin" type="password" inputmode="numeric" autocomplete="off" maxlength="4" style="max-width:9em"><div style="height:10px"></div><button class="btn quiet small" data-act="setpin">Turn on passcode</button></div>') + '</section>';
+    }
     h += '<section class="section"><h2>Share</h2><p class="fine">Anyone who opens this link gets their own private copy. You can&rsquo;t see theirs, and they can&rsquo;t see yours.</p><button class="btn quiet small" data-act="share">Share this app</button></section>';
     h += '<section class="section"><h2>About</h2><p class="fine">Surrender is an unofficial companion for the Surrender Novena by Servant of God Don Dolindo Ruotolo. The prayers live on surrendernovena.com, which isn&rsquo;t affiliated with this app. Nothing you enter here ever leaves your device.</p></section>';
     h += '<section class="section"><button class="btn danger" data-act="wipe">Erase everything on this device</button></section>';
     return h;
   }
+  function setupView() {
+    var n = setupDay, saved = S.settings.offline[n] || '';
+    return '<section class="section" style="margin-top:6px"><h2>Read the prayers in the app</h2><p class="fine">Day ' + n + ' of 9. Copy each day once from the site and paste it here. It stays on this device.</p><button class="btn quiet small" data-act="openbulk" style="margin-top:4px">Paste all nine at once instead</button>' +
+      '<div class="stack" style="margin-top:12px"><a class="btn primary" href="' + SITE + 'novena-day-' + n + '" target="_blank" rel="noopener noreferrer">1. Open Day ' + n + ' on surrendernovena.com</a></div>' +
+      '<p class="fine" style="margin-top:12px">2. On that page, select the prayer text and copy it.</p>' +
+      '<label for="setupbox" style="margin-top:12px">3. Come back here and paste it</label><textarea id="setupbox" style="min-height:220px" placeholder="Paste Day ' + n + ' here">' + esc(saved) + '</textarea>' +
+      '<div class="stack" style="margin-top:14px"><button class="btn primary" data-act="setupsave">' + (n === 9 ? 'Save and finish' : 'Save and go to Day ' + (n + 1)) + '</button>' +
+      '<div class="actions" style="margin-top:0">' + (n > 1 ? '<button class="btn quiet small" data-act="setupback">Back</button>' : '') +
+      '<button class="btn quiet small" data-act="setupskip">Skip this day</button><button class="btn quiet small" data-act="setupexit">Finish later</button></div></div></section>';
+  }
+  function commitSetup() {
+    var box = document.getElementById('setupbox'); if (!box) return;
+    var v = box.value;
+    if (v.trim()) S.settings.offline[setupDay] = v; else delete S.settings.offline[setupDay];
+    save();
+  }
+  function splitNine(text) {
+    var re = /\(\s*\d+\s*times?\s*\)/gi, parts = [], last = 0, m, tail;
+    while ((m = re.exec(text)) !== null) { parts.push(text.slice(last, m.index + m[0].length)); last = m.index + m[0].length; }
+    tail = text.slice(last).trim();
+    if (parts.length === 8 && tail) parts.push(tail);
+    if (parts.length !== 9) return null;
+    return parts.map(function (p) { return p.trim().replace(/^(?:day\s*[1-9]\s*[:.)\-]?\s*|[1-9]\s*[:.)\-]\s*)/i, '').replace(/[ \t]+$/gm, '').trim(); });
+  }
+  function bulkView() {
+    var h = '<section class="section" style="margin-top:6px"><h2>Paste all nine days at once</h2><p class="fine">Copy the whole novena from the site and paste it below. Each day should end with its &ldquo;(10 times)&rdquo; line, and I&rsquo;ll split it into nine days. It stays on this device.</p>' +
+      '<textarea id="bulkbox" data-field="bulk" style="min-height:220px" placeholder="Paste the whole novena here">' + esc(bulkText) + '</textarea>' +
+      '<div class="stack" style="margin-top:12px"><button class="btn primary" data-act="bulkcheck">Split into nine days</button></div>';
+    if (bulkParts) {
+      h += '<h2 style="margin-top:24px;font-size:1.1rem">Check it looks right</h2><div class="card">' + bulkParts.map(function (t, i) {
+        var s = t.replace(/\s+/g, ' ').slice(0, 64); return '<p style="margin:0 0 8px"><strong>Day ' + (i + 1) + '</strong> ' + esc(s) + (t.length > 64 ? '&hellip;' : '') + '</p>'; }).join('') + '</div>' +
+        '<div class="stack" style="margin-top:12px"><button class="btn primary" data-act="bulksave">Save all nine days</button></div>';
+    }
+    return h + '<div class="actions"><button class="btn quiet small" data-act="setupexit">Cancel</button><button class="btn quiet small" data-act="opensetup" data-day="1">Do it one day at a time</button></div></section>';
+  }
+  function firstMissingDay() { for (var i = 1; i <= 9; i++) { if (!(S.settings.offline[i] && String(S.settings.offline[i]).trim())) return i; } return 1; }
   function render() {
     var app = document.getElementById('app');
-    app.innerHTML = nav() + (view === 'today' ? todayView() : view === 'journal' ? journalView() : settingsView());
+    if (locked) { app.innerHTML = lockView(); var pin = document.getElementById('pin'); if (pin) pin.focus(); return; }
+    app.innerHTML = nav() + (view === 'today' ? todayView() : view === 'journal' ? journalView() : view === 'setup' ? setupView() : view === 'bulk' ? bulkView() : settingsView());
   }
 
   /* ---------- events ---------- */
@@ -333,6 +418,34 @@ summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-heig
     var a = t.getAttribute('data-act'), k = t.getAttribute('data-k');
     if (a === 'view') { view = t.getAttribute('data-view'); render(); window.scrollTo(0, 0); }
     else if (a === 'welcome') { S.seenWelcome = true; save(); render(); }
+    else if (a === 'openbulk') { commitSetup(); view = 'bulk'; bulkParts = null; render(); window.scrollTo(0, 0); }
+    else if (a === 'bulkcheck') {
+      var bb = document.getElementById('bulkbox'); bulkText = bb ? bb.value : bulkText; bulkParts = splitNine(bulkText); render();
+      if (!bulkParts) flash('I couldn\u2019t find nine days. Each one should end with \u201C(10 times)\u201D, or paste one day at a time.');
+    }
+    else if (a === 'bulksave') {
+      if (bulkParts) { for (var bi = 0; bi < 9; bi++) S.settings.offline[bi + 1] = bulkParts[bi]; save(); bulkParts = null; bulkText = ''; view = 'today'; render(); window.scrollTo(0, 0); flash('All nine days saved.'); }
+    }
+    else if (a === 'setpin') {
+      var np = document.getElementById('newpin'), code = np ? np.value : '';
+      if (!/^\d{4}$/.test(code)) { flash('Use exactly four digits.'); }
+      else { var salt = Array.prototype.map.call(window.crypto.getRandomValues(new Uint8Array(8)), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+        sha(salt + code).then(function (hash) { try { localStorage.setItem(LOCK_KEY, JSON.stringify({ salt: salt, hash: hash })); } catch (e) {} render(); flash('Passcode is on.'); }); }
+    }
+    else if (a === 'removepin') { try { localStorage.removeItem(LOCK_KEY); } catch (e) {} render(); flash('Passcode is off.'); }
+    else if (a === 'unlock') {
+      var lk = getLock(), pv = (document.getElementById('pin') || {}).value || '';
+      if (!lk) { locked = false; render(); }
+      else sha(lk.salt + pv).then(function (hash) { if (hash === lk.hash) { locked = false; lockMsg = ''; render(); } else { lockMsg = 'That isn\u2019t the right passcode.'; render(); } });
+    }
+    else if (a === 'forgot') {
+      if (window.confirm('Erase everything on this device and remove the passcode? Your notes can only come back from a backup.')) { try { localStorage.removeItem(KEY); localStorage.removeItem(LOCK_KEY); } catch (e) {} S = fresh(); locked = false; lockMsg = ''; view = 'today'; render(); }
+    }
+    else if (a === 'opensetup') { setupDay = Math.min(9, Math.max(1, parseInt(t.getAttribute('data-day'), 10) || 1)); view = 'setup'; render(); window.scrollTo(0, 0); }
+    else if (a === 'setupsave') { commitSetup(); if (setupDay < 9) { setupDay++; render(); window.scrollTo(0, 0); } else { view = 'today'; render(); window.scrollTo(0, 0); flash('All set.'); } }
+    else if (a === 'setupskip') { commitSetup(); if (setupDay < 9) { setupDay++; render(); window.scrollTo(0, 0); } else { view = 'today'; render(); window.scrollTo(0, 0); } }
+    else if (a === 'setupback') { commitSetup(); if (setupDay > 1) { setupDay--; } render(); window.scrollTo(0, 0); }
+    else if (a === 'setupexit') { commitSetup(); view = 'today'; render(); window.scrollTo(0, 0); }
     else if (a === 'share') {
       var url = String(location.href).split('#')[0];
       if (navigator.share) { navigator.share({ title: 'Surrender', text: 'A private companion for the Surrender Novena.', url: url }).catch(function () {}); }
@@ -357,13 +470,14 @@ summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-heig
       catch (e) { flash('That doesn\u2019t look like a Surrender backup.'); }
     }
     else if (a === 'wipe') {
-      if (window.confirm('Erase all your progress and notes on this device? This can\u2019t be undone.')) { try { localStorage.removeItem(KEY); } catch (e) {} S = fresh(); view = 'today'; render(); flash('Cleared.'); }
+      if (window.confirm('Erase all your progress and notes on this device? This can\u2019t be undone.')) { try { localStorage.removeItem(KEY); localStorage.removeItem(LOCK_KEY); } catch (e) {} S = fresh(); view = 'today'; render(); flash('Cleared.'); }
     }
   });
   document.addEventListener('input', function (ev) {
     var t = ev.target;
     if (t.getAttribute && t.getAttribute('data-field') === 'note') { clearTimeout(noteTimer); var v = t.value; noteTimer = setTimeout(function () { setNote(v); }, 350); }
     else if (t.getAttribute && t.getAttribute('data-offline')) { S.settings.offline[t.getAttribute('data-offline')] = t.value; save(); }
+    else if (t.getAttribute && t.getAttribute('data-field') === 'bulk') { bulkText = t.value; }
   });
   document.addEventListener('focusout', function (ev) {
     var t = ev.target; if (t.getAttribute && t.getAttribute('data-field') === 'note') { clearTimeout(noteTimer); setNote(t.value); }
@@ -377,6 +491,11 @@ summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-heig
       S.lastDoneDate = null; S.justFinished = false; save(); render(); flash('Your next day is Day ' + n + '.');
     }
   });
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && ev.target && ev.target.id === 'pin') { var b = document.querySelector('[data-act="unlock"]'); if (b) b.click(); } });
+  document.addEventListener('visibilitychange', function () {   // lock again if you were away for a couple of minutes
+    if (document.hidden) { hiddenAt = Date.now(); }
+    else if (hiddenAt && Date.now() - hiddenAt > 120000 && canLock() && getLock()) { locked = true; lockMsg = ''; render(); }
+  });
   window.addEventListener('pagehide', function () { var n = document.getElementById('note'); if (n) setNote(n.value); });
   window.addEventListener('storage', function (ev) {   // keep two open copies (Safari and Home Screen) in sync
     if (ev.key !== KEY || !ev.newValue) return;
@@ -385,6 +504,7 @@ summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-heig
 
   /* ---------- start ---------- */
   S = load();
+  if (canLock() && getLock()) locked = true;
   if (S.justFinished && S.lastDoneDate !== today()) { S.justFinished = false; save(); }
   render();
 })();
