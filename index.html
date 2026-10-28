@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1936">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Surrender">
+<title>Surrender</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%230E1936'/%3E%3Cpath d='M12 3c3 4 5 7 5 10a5 5 0 0 1-10 0c0-3 2-6 5-10z' fill='%23F3B65B'/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #EDF0F7;
+  --surface: #FFFFFF;
+  --ink: #14214A;
+  --muted: #55638A;
+  --line: #D3DAEA;
+  --flame: #C27A12;
+  --wax: #8C98BE;
+  --wax-out: #CBD3E6;
+  --btn: #1B2F78;
+  --btn-ink: #FFFFFF;
+  --focus: #1B2F78;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0E1936;
+    --surface: #16244B;
+    --ink: #ECEFF8;
+    --muted: #9FAAC9;
+    --line: #2A3A6C;
+    --flame: #F3B65B;
+    --wax: #AAB5D6;
+    --wax-out: #2F3F73;
+    --btn: #F3B65B;
+    --btn-ink: #1A1405;
+    --focus: #F3B65B;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--serif); font-size: 18px; line-height: 1.55;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.wrap { max-width: 560px; margin: 0 auto; padding: 18px 20px 56px; }
+h1, h2, h3 { font-weight: 600; line-height: 1.15; margin: 0; }
+p { margin: 0 0 12px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0 18px; }
+.brand { font-size: 1.15rem; font-weight: 600; letter-spacing: .01em; }
+.nav { display: flex; gap: 4px; font-family: var(--sans); }
+.nav button { background: none; border: 0; padding: 9px 12px; border-radius: 999px; font-size: .92rem; color: var(--muted); cursor: pointer; min-height: 44px; }
+.nav button[aria-current="page"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: inset 0 0 0 1px var(--line); }
+
+.hero { text-align: center; padding: 8px 0 6px; }
+.day { font-size: clamp(3.4rem, 17vw, 5.2rem); letter-spacing: -.01em; }
+.sub { color: var(--muted); font-size: 1rem; margin-top: 6px; }
+.candles { display: flex; justify-content: center; gap: 7px; margin: 22px 0 6px; }
+.candle { width: 24px; height: 52px; }
+.candle .wax { fill: var(--wax-out); }
+.candle .wick { fill: var(--wax); opacity: .7; }
+.candle .flame { fill: var(--flame); opacity: 0; transform-origin: 12px 14px; }
+.candle.lit .wax, .candle.now .wax { fill: var(--wax); }
+.candle.lit .flame, .candle.now .flame { opacity: 1; }
+.candle.now .flame { fill: none; stroke: var(--flame); stroke-width: 1.5; animation: flicker 3.4s ease-in-out infinite; }   /* today: an outline until you have prayed */
+@keyframes flicker { 0%,100% { transform: scale(1) rotate(0deg); } 30% { transform: scale(.94,1.05) rotate(-2deg); } 62% { transform: scale(1.03,.97) rotate(1.5deg); } }
+
+.note-line { text-align: center; color: var(--muted); margin: 14px 0 0; }
+.btn { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; padding: 12px 18px; border-radius: 14px; border: 1.5px solid transparent; font-family: var(--sans); font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; text-align: center; }
+.btn.primary { background: var(--btn); color: var(--btn-ink); }
+.btn.quiet { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn.small { min-height: 44px; font-size: .92rem; width: auto; display: inline-flex; padding: 8px 16px; }
+.btn.danger { background: transparent; color: #B3261E; border-color: #B3261E; }
+@media (prefers-color-scheme: dark) { .btn.danger { color: #FF9B93; border-color: #FF9B93; } }
+.stack { display: grid; gap: 12px; }
+.hint { font-family: var(--sans); font-size: .85rem; color: var(--muted); margin: 8px 0 0; text-align: center; }
+
+.section { margin-top: 30px; }
+.section h2 { font-size: 1.2rem; margin-bottom: 10px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; }
+
+.counter { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.tap { position: relative; width: 168px; height: 168px; border-radius: 50%; border: 0; background: var(--surface); cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+.tap svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.tap .track { fill: none; stroke: var(--line); stroke-width: 6; }
+.tap .fill { fill: none; stroke: var(--flame); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset .25s ease; }
+.tap .count { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
+.tap .n { font-size: 2.6rem; font-weight: 600; }
+.tap .of { font-family: var(--sans); font-size: .85rem; color: var(--muted); margin-top: 4px; }
+.refrain { text-align: center; font-style: italic; max-width: 22em; margin: 0; }
+.counter .reset { font-family: var(--sans); font-size: .85rem; background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; min-height: 44px; padding: 0 12px; }
+
+label { display: block; font-family: var(--sans); font-size: .92rem; color: var(--muted); margin-bottom: 6px; }
+textarea, input[type="text"], input[type="number"], select {
+  width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 1rem; line-height: 1.5; font-family: var(--serif);
+}
+textarea { min-height: 120px; resize: vertical; }
+.saved { font-family: var(--sans); font-size: .8rem; color: var(--muted); margin: 6px 0 0; min-height: 1.2em; }
+
+details { border-top: 1px solid var(--line); padding: 10px 0; }
+details:first-of-type { border-top: 0; }
+summary { cursor: pointer; font-family: var(--sans); font-size: .95rem; min-height: 44px; display: flex; align-items: center; }
+.copytext { white-space: pre-wrap; padding: 4px 0 8px; }
+
+.entry { margin-bottom: 14px; }
+.entry h3 { font-size: 1.05rem; }
+.entry .date { font-family: var(--sans); font-size: .82rem; color: var(--muted); margin: 2px 0 8px; }
+.entry .text { white-space: pre-wrap; margin: 0 0 10px; }
+.entry .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.entry.resolved .text { opacity: .8; }
+.empty { text-align: center; color: var(--muted); padding: 28px 8px; }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.links a { display: flex; align-items: center; justify-content: center; min-height: 48px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none; font-family: var(--sans); font-size: .95rem; }
+.fine { font-family: var(--sans); font-size: .85rem; color: var(--muted); }
+
+#flash { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%); max-width: 92vw; background: var(--ink); color: var(--bg); font-family: var(--sans); font-size: .9rem; padding: 12px 18px; border-radius: 999px; opacity: 0; pointer-events: none; transition: opacity .2s ease; z-index: 5; }
+#flash.on { opacity: 1; }
+.warn { font-family: var(--sans); font-size: .88rem; background: var(--surface); border: 1px solid var(--flame); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; }
+@media (prefers-reduced-motion: reduce) { .candle.now .flame { animation: none; } .tap .fill { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap"><div id="app"></div></div>
+<div id="flash" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var KEY = 'surrender-novena-v1';
+  var SITE = 'https://www.surrendernovena.com/';
+  var DEFAULT_REFRAIN = 'Jesus, I surrender myself to You. Take care of everything.';
+  var S, view = 'today', memoryOnly = false, noteTimer = null, flashTimer = null;
+
+  /* ---------- helpers ---------- */
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function dateStr(d) { d = d || new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function today() { return dateStr(); }
+  function gap(a, b) { return Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 86400000); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function prettyDate(s) { try { return new Date(s + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); } catch (e) { return s; } }
+
+  /* ---------- state ---------- */
+  function fresh() {
+    return { v: 1, cycle: 1, day: 1, done: [0, 0, 0, 0, 0, 0, 0, 0, 0], lastDoneDate: null, lastDoneDay: null, lastDoneCycle: null,
+      justFinished: false, daysPrayed: 0, cyclesCompleted: 0, journal: {}, counter: { date: '', n: 0 },
+      settings: { refrain: DEFAULT_REFRAIN, target: 10, offline: {} } };
+  }
+  function normalize(s) {
+    var f = fresh();
+    if (!s || typeof s !== 'object') return f;
+    f.cycle = Math.max(1, parseInt(s.cycle, 10) || 1);
+    f.day = Math.min(9, Math.max(1, parseInt(s.day, 10) || 1));
+    if (Array.isArray(s.done) && s.done.length === 9) f.done = s.done.map(function (x) { return x ? 1 : 0; });
+    f.lastDoneDate = typeof s.lastDoneDate === 'string' ? s.lastDoneDate : null;
+    f.lastDoneDay = parseInt(s.lastDoneDay, 10) || null;
+    f.lastDoneCycle = parseInt(s.lastDoneCycle, 10) || null;
+    f.justFinished = !!s.justFinished;
+    f.daysPrayed = Math.max(0, parseInt(s.daysPrayed, 10) || 0);
+    f.cyclesCompleted = Math.max(0, parseInt(s.cyclesCompleted, 10) || 0);
+    if (s.journal && typeof s.journal === 'object') f.journal = s.journal;
+    if (s.counter && typeof s.counter === 'object') f.counter = { date: String(s.counter.date || ''), n: Math.max(0, parseInt(s.counter.n, 10) || 0) };
+    if (s.settings && typeof s.settings === 'object') {
+      if (typeof s.settings.refrain === 'string' && s.settings.refrain.trim()) f.settings.refrain = s.settings.refrain;
+      f.settings.target = Math.min(99, Math.max(1, parseInt(s.settings.target, 10) || 10));
+      if (s.settings.offline && typeof s.settings.offline === 'object') f.settings.offline = s.settings.offline;
+    }
+    return f;
+  }
+  function load() {
+    try { var raw = localStorage.getItem(KEY); return raw ? normalize(JSON.parse(raw)) : fresh(); }
+    catch (e) { memoryOnly = true; return fresh(); }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(S)); }
+    catch (e) { if (!memoryOnly) { memoryOnly = true; render(); } }
+  }
+  function flash(msg) {
+    var el = document.getElementById('flash'); el.textContent = msg; el.className = 'on';
+    clearTimeout(flashTimer); flashTimer = setTimeout(function () { el.className = ''; }, 3200);
+  }
+
+  /* ---------- derived ---------- */
+  function prayedToday() { return S.lastDoneDate === today(); }
+  function shownDay() { return prayedToday() ? S.lastDoneDay : S.day; }
+  function shownCycle() { return prayedToday() ? S.lastDoneCycle : S.cycle; }
+  function noteKey() { return shownCycle() + ':' + shownDay(); }
+  function count() { return S.counter.date === today() ? S.counter.n : 0; }
+  function doneCount() { return S.done.reduce(function (a, b) { return a + b; }, 0); }
+
+  /* ---------- actions ---------- */
+  function markDone() {
+    if (prayedToday()) return;
+    var d = S.day, c = S.cycle;
+    S.done[d - 1] = 1; S.lastDoneDate = today(); S.lastDoneDay = d; S.lastDoneCycle = c; S.daysPrayed++;
+    if (d === 9) { S.cyclesCompleted++; S.justFinished = true; S.cycle = c + 1; S.day = 1; S.done = [0, 0, 0, 0, 0, 0, 0, 0, 0]; }
+    else { S.day = d + 1; S.justFinished = false; }
+    save(); render();
+  }
+  function prayAnother() { S.lastDoneDate = null; S.justFinished = false; save(); render(); }
+  function tap() {
+    var n = count(), t = S.settings.target;
+    if (n >= t) return;
+    n++; S.counter = { date: today(), n: n }; save();
+    if (navigator.vibrate) { try { navigator.vibrate(n >= t ? [30, 60, 30] : 12); } catch (e) {} }
+    render();
+  }
+  function resetCount() { S.counter = { date: today(), n: 0 }; save(); render(); }
+  function setNote(text) {
+    var k = noteKey(), e = S.journal[k];
+    if ((e ? e.text : '') === text || (!e && !text.trim())) return;   // nothing changed, so don't touch storage
+    if (!text.trim()) { if (e) delete S.journal[k]; }
+    else S.journal[k] = { text: text, date: e ? e.date : today(), cycle: shownCycle(), day: shownDay(), resolved: e ? !!e.resolved : false };
+    save();
+    var el = document.getElementById('saved'); if (el) el.textContent = text.trim() ? 'Saved on this device.' : '';
+  }
+
+  /* ---------- views ---------- */
+  function candleSvg(state) {
+    return '<svg class="candle ' + state + '" viewBox="0 0 24 52" aria-hidden="true">' +
+      '<path class="flame" d="M12 2c3 4 5 7 5 10a5 5 0 0 1-10 0c0-3 2-6 5-10z"/>' +
+      '<rect class="wick" x="11.4" y="15" width="1.2" height="6"/>' +
+      '<rect class="wax" x="6" y="21" width="12" height="29" rx="2"/></svg>';
+  }
+  function candleRow() {
+    var h = '', lit = 0, i, st;
+    var all = prayedToday() && S.justFinished;
+    for (i = 0; i < 9; i++) {
+      if (all || S.done[i]) { st = 'lit'; lit++; }
+      else if (!prayedToday() && i === S.day - 1) st = 'now';
+      else st = 'out';
+      h += candleSvg(st);
+    }
+    return '<div class="candles" role="img" aria-label="' + lit + ' of 9 candles lit in this novena">' + h + '</div>';
+  }
+  function nav() {
+    function b(v, l) { return '<button data-act="view" data-view="' + v + '"' + (view === v ? ' aria-current="page"' : '') + '>' + l + '</button>'; }
+    return '<div class="top"><div class="brand">Surrender</div><nav class="nav" aria-label="Sections">' + b('today', 'Today') + b('journal', 'Journal') + b('settings', 'Settings') + '</nav></div>' +
+      (memoryOnly ? '<div class="warn">Your browser is blocking saving, so nothing will be kept after you close this page. Try a normal (not private) window.</div>' : '');
+  }
+  function todayView() {
+    var done = prayedToday(), d = shownDay(), c = shownCycle(), n = count(), t = S.settings.target, circ = 2 * Math.PI * 54;
+    var gapDays = (!done && S.lastDoneDate) ? gap(S.lastDoneDate, today()) : 0;
+    var e = S.journal[noteKey()], off = S.settings.offline[d];
+    var line;
+    if (done && S.justFinished) line = 'That&rsquo;s all nine days. Day 1 of the next novena begins tomorrow.';
+    else if (done) line = 'Day ' + d + ' is prayed. Day ' + S.day + ' opens tomorrow.';
+    else if (gapDays >= 2) line = 'Welcome back. Day ' + d + ' is waiting. There&rsquo;s nothing to catch up on.';
+    else if (!S.lastDoneDate) line = 'Begin whenever you&rsquo;re ready.';
+    else line = 'Take a breath. Today is Day ' + d + '.';
+
+    var h = '<section class="hero"><h1 class="day">Day ' + d + '</h1><p class="sub">Novena ' + c + (done ? ', prayed today' : '') + '</p>' + candleRow() + '<p class="note-line">' + line + '</p></section>';
+
+    h += '<div class="stack" style="margin-top:18px"><a class="btn ' + (done ? 'quiet' : 'primary') + '" href="' + SITE + 'novena-day-' + d + '" target="_blank" rel="noopener noreferrer">Open Day ' + d + ' on surrendernovena.com</a></div>' +
+      '<p class="hint">Opens the prayer in a new tab.</p>';
+    if (off && String(off).trim()) h += '<div class="card" style="margin-top:14px"><details><summary>Read my saved copy of Day ' + d + '</summary><div class="copytext">' + esc(off) + '</div></details></div>';
+
+    h += '<section class="section"><h2>Say it ' + t + ' times</h2><div class="counter">' +
+      '<button class="tap" data-act="tap" aria-label="Count a prayer. ' + n + ' of ' + t + ' so far">' +
+      '<svg viewBox="0 0 120 120" aria-hidden="true"><circle class="track" cx="60" cy="60" r="54"/><circle class="fill" cx="60" cy="60" r="54" stroke-dasharray="' + circ.toFixed(2) + '" stroke-dashoffset="' + (circ * (1 - Math.min(1, n / t))).toFixed(2) + '"/></svg>' +
+      '<span class="count"><span class="n">' + n + '</span><span class="of">' + (n >= t ? 'done' : 'of ' + t) + '</span></span></button>' +
+      '<p class="refrain">&ldquo;' + esc(S.settings.refrain) + '&rdquo;</p>' +
+      (n > 0 ? '<button class="reset" data-act="resetcount">Start the count over</button>' : '') + '</div></section>';
+
+    h += '<section class="section"><h2>What am I handing over today?</h2><label for="note">Write it down, then let it go. Only you can see this.</label>' +
+      '<textarea id="note" data-field="note" placeholder="The thing that is weighing on me&hellip;">' + esc(e ? e.text : '') + '</textarea><p class="saved" id="saved">' + (e && e.text ? 'Saved on this device.' : '') + '</p></section>';
+
+    h += '<div class="stack" style="margin-top:26px">' +
+      (done ? '<button class="btn quiet" data-act="another">Pray another day now</button>' : '<button class="btn primary" data-act="done">I prayed today</button>') + '</div>';
+    h += '<p class="hint" style="margin-top:22px">' + (S.cyclesCompleted ? S.cyclesCompleted + (S.cyclesCompleted === 1 ? ' novena finished. ' : ' novenas finished. ') : '') + S.daysPrayed + (S.daysPrayed === 1 ? ' day prayed in total.' : ' days prayed in total.') + '</p>';
+    return h;
+  }
+  function journalView() {
+    var keys = Object.keys(S.journal);
+    if (!keys.length) return '<div class="empty"><p>Nothing here yet.</p><p>What you write on the Today page will gather here, so you can look back at what you handed over.</p></div>';
+    var items = keys.map(function (k) { return { k: k, e: S.journal[k] }; }).sort(function (a, b) {
+      if (a.e.date !== b.e.date) return a.e.date < b.e.date ? 1 : -1;
+      if (a.e.cycle !== b.e.cycle) return b.e.cycle - a.e.cycle;
+      return b.e.day - a.e.day;
+    });
+    return items.map(function (it) {
+      var e = it.e;
+      return '<article class="card entry' + (e.resolved ? ' resolved' : '') + '"><h3>Novena ' + e.cycle + ', Day ' + e.day + '</h3><p class="date">' + esc(prettyDate(e.date)) + (e.resolved ? ' &ndash; resolved' : '') + '</p>' +
+        '<p class="text">' + esc(e.text) + '</p><div class="row"><button class="btn quiet small" data-act="resolve" data-k="' + esc(it.k) + '">' + (e.resolved ? 'Mark as open again' : 'Mark as resolved') + '</button>' +
+        '<button class="btn quiet small" data-act="delentry" data-k="' + esc(it.k) + '">Delete</button></div></article>';
+    }).join('');
+  }
+  function settingsView() {
+    var i, h = '', opts = '', offl = '', links = '';
+    for (i = 1; i <= 9; i++) {
+      opts += '<option value="' + i + '"' + (S.day === i ? ' selected' : '') + '>Day ' + i + '</option>';
+      links += '<a href="' + SITE + 'novena-day-' + i + '" target="_blank" rel="noopener noreferrer">Day ' + i + '</a>';
+      offl += '<details><summary>Day ' + i + (S.settings.offline[i] && String(S.settings.offline[i]).trim() ? ' (saved)' : '') + '</summary><textarea data-offline="' + i + '" aria-label="Your saved copy of Day ' + i + '">' + esc(S.settings.offline[i] || '') + '</textarea></details>';
+    }
+    h += '<section class="section" style="margin-top:6px"><h2>Where you are</h2><div class="card"><label for="daysel">Your next day to pray</label><select id="daysel" data-field="day">' + opts + '</select>' +
+      '<p class="fine" style="margin-top:10px">Changing this lights the earlier candles. You can also start the novena over at Day 1.</p><button class="btn quiet small" data-act="restart">Start over at Day 1</button></div></section>';
+    h += '<section class="section"><h2>The prayers</h2><div class="links">' + links + '</div><p class="fine" style="margin-top:10px">These open each day on surrendernovena.com. <a style="color:inherit" href="' + SITE + 'full-novena" target="_blank" rel="noopener noreferrer">The full novena page</a> has them together.</p></section>';
+    h += '<section class="section"><h2>The words you repeat</h2><div class="card"><label for="refrain">Your refrain (edit it to match your copy)</label><input type="text" id="refrain" data-field="refrain" value="' + esc(S.settings.refrain) + '">' +
+      '<div style="height:12px"></div><label for="target">How many times each day</label><input type="number" id="target" data-field="target" min="1" max="99" value="' + S.settings.target + '"></div></section>';
+    h += '<section class="section"><h2>Keep my own copy</h2><p class="fine">Optional. If you want to read a day without leaving the app, paste it here for yourself. It stays on this device.</p><div class="card">' + offl + '</div></section>';
+    h += '<section class="section"><h2>Back up</h2><p class="fine">Everything is saved only on this device. Copy this to keep a backup, or paste an old backup below to restore it.</p><div class="card">' +
+      '<label for="export">Your backup</label><textarea id="export" readonly>' + esc(JSON.stringify(S)) + '</textarea><div style="height:10px"></div><button class="btn quiet small" data-act="copy">Copy backup</button>' +
+      '<div style="height:16px"></div><label for="import">Restore from a backup</label><textarea id="import" placeholder="Paste a backup here"></textarea><div style="height:10px"></div><button class="btn quiet small" data-act="restore">Restore</button></div></section>';
+    h += '<section class="section"><h2>On your phone</h2><p class="fine">On iPhone, open this page in Safari, tap Share, then Add to Home Screen. For a daily nudge, add a repeating reminder in the Reminders app.</p></section>';
+    h += '<section class="section"><button class="btn danger" data-act="wipe">Erase everything on this device</button></section>';
+    return h;
+  }
+  function render() {
+    var app = document.getElementById('app');
+    app.innerHTML = nav() + (view === 'today' ? todayView() : view === 'journal' ? journalView() : settingsView());
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener('click', function (ev) {
+    var t = ev.target.closest ? ev.target.closest('[data-act]') : null; if (!t) return;
+    var a = t.getAttribute('data-act'), k = t.getAttribute('data-k');
+    if (a === 'view') { view = t.getAttribute('data-view'); render(); window.scrollTo(0, 0); }
+    else if (a === 'tap') tap();
+    else if (a === 'resetcount') resetCount();
+    else if (a === 'done') markDone();
+    else if (a === 'another') prayAnother();
+    else if (a === 'resolve') { if (S.journal[k]) { S.journal[k].resolved = !S.journal[k].resolved; save(); render(); } }
+    else if (a === 'delentry') { if (window.confirm('Delete this entry for good?')) { delete S.journal[k]; save(); render(); } }
+    else if (a === 'restart') { if (window.confirm('Start the novena over at Day 1?')) { S.day = 1; S.done = [0, 0, 0, 0, 0, 0, 0, 0, 0]; S.lastDoneDate = null; S.justFinished = false; save(); render(); flash('Back at Day 1.'); } }
+    else if (a === 'copy') {
+      var box = document.getElementById('export'); box.focus(); box.select();
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(box.value).then(function () { flash('Backup copied.'); }, function () { flash('Select the text and copy it.'); });
+      else flash('Select the text and copy it.');
+    }
+    else if (a === 'restore') {
+      var txt = document.getElementById('import').value.trim();
+      try { var o = JSON.parse(txt); if (!o || o.v !== 1) throw new Error('bad'); S = normalize(o); save(); render(); flash('Restored.'); }
+      catch (e) { flash('That doesn\u2019t look like a Surrender backup.'); }
+    }
+    else if (a === 'wipe') {
+      if (window.confirm('Erase all your progress and notes on this device? This can\u2019t be undone.')) { try { localStorage.removeItem(KEY); } catch (e) {} S = fresh(); view = 'today'; render(); flash('Cleared.'); }
+    }
+  });
+  document.addEventListener('input', function (ev) {
+    var t = ev.target;
+    if (t.getAttribute && t.getAttribute('data-field') === 'note') { clearTimeout(noteTimer); var v = t.value; noteTimer = setTimeout(function () { setNote(v); }, 350); }
+    else if (t.getAttribute && t.getAttribute('data-offline')) { S.settings.offline[t.getAttribute('data-offline')] = t.value; save(); }
+  });
+  document.addEventListener('focusout', function (ev) {
+    var t = ev.target; if (t.getAttribute && t.getAttribute('data-field') === 'note') { clearTimeout(noteTimer); setNote(t.value); }
+  });
+  document.addEventListener('change', function (ev) {
+    var t = ev.target, f = t.getAttribute && t.getAttribute('data-field'); if (!f) return;
+    if (f === 'refrain') { S.settings.refrain = t.value.trim() || DEFAULT_REFRAIN; save(); flash('Saved.'); }
+    else if (f === 'target') { S.settings.target = Math.min(99, Math.max(1, parseInt(t.value, 10) || 10)); save(); render(); flash('Saved.'); }
+    else if (f === 'day') {
+      var n = parseInt(t.value, 10); S.day = n; S.done = [0, 0, 0, 0, 0, 0, 0, 0, 0].map(function (x, i) { return i < n - 1 ? 1 : 0; });
+      S.lastDoneDate = null; S.justFinished = false; save(); render(); flash('Your next day is Day ' + n + '.');
+    }
+  });
+  window.addEventListener('pagehide', function () { var n = document.getElementById('note'); if (n) setNote(n.value); });
+  window.addEventListener('storage', function (ev) {   // keep two open copies (Safari and Home Screen) in sync
+    if (ev.key !== KEY || !ev.newValue) return;
+    try { S = normalize(JSON.parse(ev.newValue)); render(); } catch (e) {}
+  });
+
+  /* ---------- start ---------- */
+  S = load();
+  if (S.justFinished && S.lastDoneDate !== today()) { S.justFinished = false; save(); }
+  render();
+})();
+</script>
+</body>
+</html>
